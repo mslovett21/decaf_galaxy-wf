@@ -47,8 +47,6 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 IMG_SIZE = [224, 224]
 tensor = (3,224, 224) # this is to predict the in_features of FC Layers
 
-
-EPOCHS   = 3
 PATIENCE = 10
 
 
@@ -70,7 +68,7 @@ def get_arguments():
     
     parser = argparse.ArgumentParser(description="Galaxy Classification")
     
-    parser.add_argument('--batch_size', type=int, default=16, help='batch size for training')
+    parser.add_argument('--batch_size', type=int, default=32, help='batch size for training')
     parser.add_argument('--cuda', type=int, default=0, help='use gpu support')
     parser.add_argument('--seed', type=int, default=123, help='select seed number for reproducibility')
     parser.add_argument('--root_path', type=str, default='./data',help='path to dataset ')
@@ -218,7 +216,7 @@ def create_confusion_matrix(model, testloader):
     plt.savefig(VIS_RESULTS_PATH + "/confusion_matrix_unnorm.png")
 
     
-def draw_training_curves(train_losses, test_losses, curve_name):
+def draw_training_curves(train_losses, test_losses, curve_name, trial_num):
     """
     plots training and testing loss/accuracy curves
     params: train_losses = training loss
@@ -236,7 +234,7 @@ def draw_training_curves(train_losses, test_losses, curve_name):
     plt.plot(train_losses, label='Training {}'.format(curve_name))
     plt.plot(test_losses, label='Testing {}'.format(curve_name))
     plt.legend(frameon=False)
-    plt.savefig(VIS_RESULTS_PATH + "/{}_vgg16.png".format(curve_name))
+    plt.savefig(VIS_RESULTS_PATH + "/{}_vgg16_trial_{}.png".format(curve_name, trial_num))
 
     
 
@@ -295,7 +293,7 @@ def objective(trial,direction = "minimize"):
     val_acc    = []
     total_loss = 0
     
-    early_stop = EarlyStopping(patience=PATIENCE, path= CHECKPOINT_DIR+'/early_stopping_vgg16model.pth')
+    early_stop = EarlyStopping(patience=PATIENCE, path= CHECKPOINT_DIR+'/early_stopping_vgg16_model_trial{}.pth'.format(trial.number))
     
     for epoch in range(EPOCHS):
         print("Running Epoch {}".format(epoch+1))
@@ -318,6 +316,7 @@ def objective(trial,direction = "minimize"):
     
         if early_stop.early_stop:
             break
+    draw_training_curves(train_loss, val_loss, "loss", trial.number )
     
     
     total_loss/=EPOCHS
@@ -340,7 +339,7 @@ def get_best_params(best):
     parameters["trial_id"] = best.number
     parameters["value"] = best.value
     parameters["params"] = best.params
-    f = open(CHECKPOINT_DIR+"/best_vgg16_hpo_params.txt","w")
+    f = open(VIS_RESULTS_PATH+"/best_vgg16_hpo_params.txt","w")
     f.write(str(parameters))
     f.close()
 
@@ -367,6 +366,7 @@ def main():
     global TRIALS
     global ARGS
     global BATCH_SIZE
+    global EPOCHS
 
     ARGS = get_arguments()   
     seed = ARGS.seed
@@ -380,6 +380,7 @@ def main():
 
     TRIALS     = ARGS.trials
     BATCH_SIZE = ARGS.batch_size
+    EPOCHS     = ARGS.epochs
     create_optuna_study()
     
     return
