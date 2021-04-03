@@ -18,6 +18,7 @@ from sklearn.metrics import confusion_matrix
 from torchsummary import summary
 import torchvision.transforms as transforms
 import gc
+import logging
 import time
 from model_selection import EarlyStopping, VGG16Model
 from data_loader import GalaxyDataset
@@ -29,27 +30,62 @@ timestr = time.strftime("%Y%m%d-%H%M%S")
 
 REL_PATH = "./"
 DATA_DIR = "galaxy_data/"
-TRAIN_DATA_PATH = REL_PATH + DATA_DIR 
-VAL_DATA_PATH   = REL_PATH + DATA_DIR 
-TEST_DATA_PATH  = REL_PATH + DATA_DIR
-CHECKPOINT_DIR = REL_PATH + 'checkpoints/vgg16_galaxy/' + timestr
+TRAIN_DATA_PATH  = REL_PATH + DATA_DIR 
+TEST_DATA_PATH   = REL_PATH + DATA_DIR
+VAL_DATA_PATH    = REL_PATH + DATA_DIR
+CHECKPOINT_DIR   = REL_PATH + 'checkpoints/vgg16_galaxy/'
 VIS_RESULTS_PATH = REL_PATH + 'exp_results_details/vgg16_galaxy/' + timestr
 
-os.makedirs(VIS_RESULTS_PATH)
-os.makedirs(CHECKPOINT_DIR)
+try:
+    os.makedirs(VIS_RESULTS_PATH)
+    os.makedirs(CHECKPOINT_DIR)
+except Exception as e:
+    print(e)
 
 # Constant variables
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-IMG_SIZE = [400, 400]
-tensor = (3,400, 400) # this is to predict the in_features of FC Layers
-BATCH_SIZE = 8
+IMG_SIZE = [224, 224]
+tensor = (3,224, 224) # this is to predict the in_features of FC Layers
 
-EPOCHS = 3
+
+EPOCHS   = 3
 PATIENCE = 10
+
 
 # TO ADD if memory issues encounter
 gc.collect()
 torch.cuda.empty_cache()
+
+
+
+### ------------------------- LOGGER--------------------------------
+logger = logging.getLogger('optuna_db_log')
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+
+
+
+def get_arguments():
+    
+    parser = argparse.ArgumentParser(description="Galaxy Classification")
+    
+    parser.add_argument('--batch_size', type=int, default=16, help='batch size for training')
+    parser.add_argument('--cuda', type=int, default=0, help='use gpu support')
+    parser.add_argument('--seed', type=int, default=123, help='select seed number for reproducibility')
+    parser.add_argument('--root_path', type=str, default='./data',help='path to dataset ')
+    parser.add_argument('--save', type=str, default = REL_PATH + 'checkpoints/vgg16_galaxy/',help='path to checkpoint save directory ')
+    parser.add_argument('--epochs', type=int,default=1, help = "number of training epochs")
+    parser.add_argument('--trials', type=int, default=2, help = "number of HPO trials")
+    parser.add_argument('--ex_rate',type=int,default=2, help = "info exchange rate in HPO")
+    
+    args = parser.parse_args()
+    
+    return args
+
+
+
+
 
 ### -------------------------FOR DATALOADER --------------------------------
 class ToTensorRescale(object):
@@ -57,7 +93,7 @@ class ToTensorRescale(object):
     def __call__(self, sample):
         image, label = sample["image"], sample["label"]
         image = image/255
-        image = np.resize(image,(400,400,3))
+        image = np.resize(image,(224,224,3))
         image = image.transpose((2, 0, 1))
         return {"image":torch.from_numpy(image),
                 "label" :label}
@@ -203,62 +239,43 @@ def draw_training_curves(train_losses, test_losses, curve_name):
     plt.savefig(VIS_RESULTS_PATH + "/{}_vgg16.png".format(curve_name))
 
     
-def get_transformations(flag):
-    """
-    returns series of augmentations and transformations
-    params: flag = train/test
-    """
-    transforms = []
-    p = np.random.uniform(0, 1)
-    
-    if p <= 0.5 and flag=="train":
-        transforms.append(torchvision.transforms.CenterCrop((700,700)))
-    
-    transforms.append(torchvision.transforms.Resize(IMG_SIZE))
-    
-        
-    if flag == "train":
-        if p >= 0.4 and p <=0.7:
-            transforms.append(torchvision.transforms.ColorJitter(brightness=1.2))
-        transforms.append(torchvision.transforms.RandomHorizontalFlip(p=0.5))
-        
-    transforms.append(torchvision.transforms.ToTensor())   
-    return torchvision.transforms.Compose(transforms)
 
-
-def get_data_loader(flag):
+def get_data_loader(prefix):
     """
     returns train/test/val dataloaders
     params: flag = train/test/val
     """
     data_transforms  = transforms.Compose([ToTensorRescale()])
 
-    if flag == "train":       
+    if prefix == "train":       
 
-        train_data  = GalaxyDataset( TRAIN_DATA_PATH , transform = data_transforms)
-        val_data   = GalaxyDataset( VAL_DATA_PATH, transform = data_transforms)
-        trainloader = torch.utils.data.DataLoader(train_data, batch_size = BATCH_SIZE, shuffle=True)
-        valloader   = torch.utils.data.DataLoader(val_data, batch_size = BATCH_SIZE, shuffle=True)
-        
-        return trainloader, valloader
+        train_data  = GalaxyDataset( TRAIN_DATA_PATH ,prefix = prefix, transform = data_transforms)
+        train_loader = torch.utils.data.DataLoader(train_data, batch_size = BATCH_SIZE, shuffle=True)       
+        return train_loader
     
-    else:
+    elif prefix == "val":
         
-        test_data   = GalaxyDataset( TEST_DATA_PATH, transform= data_transforms)  
-        testloader = torch.utils.data.DataLoader(test_data, batch_size = BATCH_SIZE, shuffle=True)
-        
-        return testloader
+        val_data   = GalaxyDataset( VAL_DATA_PATH, prefix = prefix,transform= data_transforms)
+        val_loader = torch.utils.data.DataLoader(val_data, batch_size = BATCH_SIZE, shuffle=True)
+        return val_loader
+    
+    elif prefix == "test":
+
+        test_data   = GalaxyDataset( TEST_DATA_PATH,prefix = prefix, transform= data_transforms)  
+        test_loader = torch.utils.data.DataLoader(test_data, batch_size = BATCH_SIZE, shuffle=True)       
+        return test_loader
     
 ###################################################################################################  
 
 # Optuna Study functions
 
-def objective(trial):
+def objective(trial,direction = "minimize"):
     
     print("Performing trial {}".format(trial.number))
     
-    train_loader, val_loader = get_data_loader("train")
-    test_loader = get_data_loader("test")
+    train_loader = get_data_loader("train")
+    val_loader   = get_data_loader("val")
+
     
     layer = trial.suggest_categorical("layer",["21", "14", "10"])
     
@@ -273,9 +290,9 @@ def objective(trial):
                                  {'params':model.head.parameters(), 'lr':lr_head}])
     
     train_loss = []
-    val_loss = []
-    train_acc = []
-    val_acc = []
+    val_loss   = []
+    train_acc  = []
+    val_acc    = []
     total_loss = 0
     
     early_stop = EarlyStopping(patience=PATIENCE, path= CHECKPOINT_DIR+'/early_stopping_vgg16model.pth')
@@ -312,7 +329,7 @@ def hpo_monitor(study, trial):
     """
     Save optuna hpo study
     """
-#    joblib.dump(study, CHECKPOINT_DIR+"/hpo_galaxy_vgg16.pkl")
+    joblib.dump(study, CHECKPOINT_DIR+"/hpo_galaxy_vgg16.pkl")
     
 def get_best_params(best):
     """
@@ -323,27 +340,21 @@ def get_best_params(best):
     parameters["trial_id"] = best.number
     parameters["value"] = best.value
     parameters["params"] = best.params
-    
-# #   f = open(CHECKPOINT_DIR+"/best_vgg16_hpo_params.txt","w")
-#    f.write(str(parameters))
-#    f.close()
+    f = open(CHECKPOINT_DIR+"/best_vgg16_hpo_params.txt","w")
+    f.write(str(parameters))
+    f.close()
 
-def load_study():
+
+
+def create_optuna_study():
+    
     try:
-        STUDY = joblib.load(CHECKPOINT_DIR +"hpo_galaxy_vgg16.pkl")
-        print("Successfully loaded the existing study!")    
-        rem_trials = TRIALS - len(STUDY.trials_dataframe())
-        if rem_trials > 0:
-            STUDY.optimize(objective, n_trials=rem_trials, callbacks=[hpo_monitor])
-        else:
-            print("All trials done!")
-            pass
+        STUDY = optuna.create_study(study_name='Galaxy Classification')
+        print("Number of trials to perfrom {}".format(TRIALS))
+        STUDY.optimize(objective, n_trials=TRIALS, callbacks=[hpo_monitor])
 
     except Exception as e:
         print(e)
-        print("Creating a new study!")
-        STUDY = optuna.create_study(study_name='Galaxy Classification')
-        STUDY.optimize(objective, n_trials=TRIALS, callbacks=[hpo_monitor])
 
     best_trial = STUDY.best_trial
     get_best_params(best_trial)
@@ -354,12 +365,22 @@ def load_study():
 def main():
     
     global TRIALS
-    parser = argparse.ArgumentParser(description="Galaxy Classification")
-    parser.add_argument('--trials', type=int, default=2, help="Enter number of trials to perform HPO")
-    args = parser.parse_args()
-    
-    TRIALS = args.trials
-    load_study()
+    global ARGS
+    global BATCH_SIZE
+
+    ARGS = get_arguments()   
+    seed = ARGS.seed
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+
+    if (ARGS.cuda):
+            torch.cuda.manual_seed(seed)
+            torch.backends.cudnn.deterministic = True
+            torch.backends.cudnn.benchmark = False 
+
+    TRIALS     = ARGS.trials
+    BATCH_SIZE = ARGS.batch_size
+    create_optuna_study()
     
     return
 
