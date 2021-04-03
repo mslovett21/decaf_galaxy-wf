@@ -18,9 +18,9 @@ from torchsummary import summary
 import gc
 import time
 
-tensor = (3,400, 400)
+tensor = (3,224, 224)
 
-# VGG16 pre-trained model Architecture
+# VGG16trained model Architecture
 
 class VGG16Model(torch.nn.Module):
     """
@@ -42,7 +42,7 @@ class VGG16Model(torch.nn.Module):
             
       
         self.in_feat = self.get_dim(tensor)
-        
+
         self.head = torch.nn.Sequential(
                     torch.nn.Flatten(),
                     torch.nn.Linear(in_features=self.in_feat, out_features=4096, bias=True), #not such a steep jump
