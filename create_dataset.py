@@ -12,7 +12,7 @@ import sys
 import argparse
 
 DATA_DIR = "galaxy-zoo-the-galaxy-challenge/images_training_rev1/"
-MAX_IMG   =  200
+MAX_IMG   =  500
 
 def parse_args(args):
     parser = argparse.ArgumentParser(description="Enter description here")
@@ -26,7 +26,7 @@ def parse_args(args):
     parser.add_argument(
                 "-o",
                 "--output_dir",
-                default="dataset/",
+                default="galaxy_data/",
                 help="directory where output files will be written to"
             )
 
@@ -80,6 +80,12 @@ def main():
     print(len(input_files))
     df = label_dataset('galaxy-zoo-the-galaxy-challenge/training_solutions_rev1.csv')
     print(len(df))
+    try:
+        os.makedirs(args.output_path)
+    except Exception as e:
+        pass
+
+
     
     output_path = args.output_dir
     

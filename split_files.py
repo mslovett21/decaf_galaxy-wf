@@ -6,7 +6,7 @@ import zipfile
 import random
 import glob
 
-INPUT_DIR  = "dataset/"
+INPUT_DIR  = "galaxy_data/"
 OUTPUT_DIR = "galaxy_data/"
 #os.makedirs(OUTPUT_DIR)
 
