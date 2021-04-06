@@ -22,6 +22,7 @@ import logging
 import time
 from model_selection import EarlyStopping, VGG16Model
 from data_loader import GalaxyDataset
+from mpi4py import MPI
 
 from IPython import embed
 timestr = time.strftime("%Y%m%d-%H%M%S")
@@ -76,7 +77,9 @@ def get_arguments():
     parser.add_argument('--epochs', type=int,default=1, help = "number of training epochs")
     parser.add_argument('--trials', type=int, default=2, help = "number of HPO trials")
     parser.add_argument('--ex_rate',type=int,default=2, help = "info exchange rate in HPO")
-    
+    parser.add_argument('--worker_id', type=int, default=0, help = "worker id")
+    parser.add_argument('--jobs', type=int, default=1, help = "number of Optuna parallel jobs")
+
     args = parser.parse_args()
     
     return args
@@ -271,6 +274,7 @@ def objective(trial,direction = "minimize"):
     
     print("Performing trial {}".format(trial.number))
     
+    start = time.time()
     train_loader = get_data_loader("train")
     val_loader   = get_data_loader("val")
 
@@ -320,7 +324,9 @@ def objective(trial,direction = "minimize"):
     
     
     total_loss/=EPOCHS
-    
+
+    print(f'Worker {WORKER_ID} finished trial {trial.number} in {time.time() - start} seconds')
+
     return total_loss
     
     
@@ -348,15 +354,15 @@ def get_best_params(best):
 def create_optuna_study():
     
     try:
-        STUDY = optuna.create_study(study_name='Galaxy Classification')
+        #STUDY = optuna.create_study(study_name='Galaxy_Classification', log_db="log_db")
+        STUDY = optuna.load_study(study_name='Galaxy_Classification', storage='mysql://decaf_hpo_db_admin:3Iiidd_2s25j3w33jjdd@nerscdb04.nersc.gov/decaf_hpo_db', log_db="log_db")
         print("Number of trials to perfrom {}".format(TRIALS))
-        STUDY.optimize(objective, n_trials=TRIALS, callbacks=[hpo_monitor])
+        STUDY.optimize(objective, n_trials=TRIALS, callbacks=[hpo_monitor], gc_after_trial=True, n_jobs=NJOBS)
+        best_trial = STUDY.best_trial
+        get_best_params(best_trial)
 
     except Exception as e:
         print(e)
-
-    best_trial = STUDY.best_trial
-    get_best_params(best_trial)
 
     return
     
@@ -367,6 +373,8 @@ def main():
     global ARGS
     global BATCH_SIZE
     global EPOCHS
+    global WORKER_ID
+    global NJOBS
 
     ARGS = get_arguments()   
     seed = ARGS.seed
@@ -381,10 +389,22 @@ def main():
     TRIALS     = ARGS.trials
     BATCH_SIZE = ARGS.batch_size
     EPOCHS     = ARGS.epochs
+    #WORKER_ID  = ARGS.worker_id
+    WORKER_ID  = MPI.COMM_WORLD.Get_rank()
+    NJOBS      = ARGS.jobs
     create_optuna_study()
     
     return
 
 if __name__ == "__main__":
-    
+    print(f"DEVICE = {DEVICE}")
+    print(f"torch.cuda.is_available() = {torch.cuda.is_available()}")
+    print(f"torch.cuda.current_device() = {torch.cuda.current_device()}")
+    print(f"torch.cuda.device(0) = {torch.cuda.device(0)}")
+    print(f"torch.cuda.device_count() = {torch.cuda.device_count()}")
+    print(f"torch.cuda.get_device_name(0) = {torch.cuda.get_device_name(0)}")
+    print(f'torch.device("cuda") = {torch.device("cuda")}')
+    print(f"CPUs = {os.sched_getaffinity(0)}")
+    start_main = time.time()
     main()
+    print(f'Worker {WORKER_ID} ran in {time.time() - start_main} seconds')    
