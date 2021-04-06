@@ -1,0 +1,55 @@
+#!/bin/bash
+#SBATCH -A m2187
+#SBATCH -C gpu
+#SBATCH -G 1
+#SBATCH -n 1
+#SBATCH -c 2
+#SBATCH --hint=nomultithread
+#SBATCH --gpus-per-task=1
+#SBATCH -t 03:00:00
+#
+# Perform multiple HPO workers
+if [ "$#" -ne 3 ]; then
+    echo "./run NTRIALS NWORKERS NTHREADS_PER_WORKER"
+    exit 2
+fi
+
+# Global parameters
+NTRIALS=$1
+NWORKERS=$2
+NTHREADS_PER_WORKER=$3
+NTIMES=1
+NTRIALS_PER_WORKER=$(( NTRIALS/NWORKERS ))
+NEPOCHS=5
+NMGPUS=${NWORKERS}
+if [ "${NWORKERS}" -gt 8 ]; then
+    NMGPUS=8
+fi
+GPU_STRING="0"
+for (( i=1; i<${NMGPUS}; i++ )); do
+    GPU_STRING+=",${i}"
+done
+#echo ${GPU_STRING}
+echo "Number of trials: ${NTRIALS}"
+echo "Number of workers: ${NWORKERS}"
+echo "Number of threads per worker: ${NTHREADS_PER_WORKER}"
+
+# Load environment script
+. $HOME/application/envs/decaf.sh
+
+for (( i=1; i<=$NTIMES; i++ ))
+do
+    echo "--- Start trial $i"
+    # Prepare Optuna study
+    rm -rf checkpoints/ exp_results_details/ __pycache__/ log_db
+    ./study delete
+    ./study create
+
+    start=$SECONDS
+    cmd="srun -G ${NWORKERS} -n ${NWORKERS} -c ${NTHREADS_PER_WORKER} --gpus-per-task=1 --gpu-bind=map_gpu:${GPU_STRING} --hint=nomultithread python vgg16_hpo.py --trials ${NTRIALS_PER_WORKER} --epochs ${NEPOCHS} --jobs ${NTHREADS_PER_WORKER} --cuda 1"
+    echo ${cmd}
+    ${cmd} &> log.${NTRIALS}_${NWORKERS}_${NTHREADS_PER_WORKER}.${i}
+    end=$SECONDS
+    echo "Duration: $((end-start)) seconds." >> log.${NTRIALS}_${NWORKERS}_${NTHREADS_PER_WORKER}.${i}
+    echo "--- End trial $i"
+done
