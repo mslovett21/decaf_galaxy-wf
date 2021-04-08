@@ -18,7 +18,7 @@ from torchsummary import summary
 import gc
 import time
 
-tensor = (3,224, 224)
+tensor = (3,256, 256)
 
 # VGG16trained model Architecture
 
@@ -45,15 +45,15 @@ class VGG16Model(torch.nn.Module):
 
         self.head = torch.nn.Sequential(
                     torch.nn.Flatten(),
-                    torch.nn.Linear(in_features=self.in_feat, out_features=4096, bias=True), #not such a steep jump
-                    torch.nn.BatchNorm1d(4096),
+                    torch.nn.Linear(in_features=self.in_feat, out_features=512, bias=True), #not such a steep jump
+                    torch.nn.BatchNorm1d(512),
                     torch.nn.ReLU(),
                     torch.nn.Dropout(0.25),
-                    torch.nn.Linear(in_features=4096, out_features=128, bias=True), #not such a steep jump
-                    torch.nn.BatchNorm1d(128),
+                    torch.nn.Linear(in_features= 512, out_features=64, bias=True), #not such a steep jump
+                    torch.nn.BatchNorm1d(64),
                     torch.nn.ReLU(),
                     torch.nn.Dropout(0.25),
-                    torch.nn.Linear(128,5)
+                    torch.nn.Linear(64,5)
         )
 
     def get_dim(self, input_size):

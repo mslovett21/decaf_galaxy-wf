@@ -29,7 +29,7 @@ timestr = time.strftime("%Y%m%d-%H%M%S")
 # Paths:
 
 REL_PATH = "./"
-DATA_DIR = "galaxy_data/"
+DATA_DIR = "final_galaxy_dataset/"
 TRAIN_DATA_PATH  = REL_PATH + DATA_DIR 
 TEST_DATA_PATH   = REL_PATH + DATA_DIR
 VAL_DATA_PATH    = REL_PATH + DATA_DIR
@@ -42,12 +42,12 @@ try:
 except Exception as e:
     print(e)
 
-# Constant variables
+# Constant variabless
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-IMG_SIZE = [224, 224]
-tensor = (3,224, 224) # this is to predict the in_features of FC Layers
+IMG_SIZE = [256, 256]
+tensor = (3,256, 256) # this is to predict the in_features of FC Layers
 
-PATIENCE = 10
+PATIENCE = 4
 
 
 # TO ADD if memory issues encounter
@@ -91,7 +91,7 @@ class ToTensorRescale(object):
     def __call__(self, sample):
         image, label = sample["image"], sample["label"]
         image = image/255
-        image = np.resize(image,(224,224,3))
+        image = np.resize(image,(256,256,3))
         image = image.transpose((2, 0, 1))
         return {"image":torch.from_numpy(image),
                 "label" :label}
@@ -275,7 +275,7 @@ def objective(trial,direction = "minimize"):
     val_loader   = get_data_loader("val")
 
     
-    layer = trial.suggest_categorical("layer",["21", "14", "10"])
+    layer = trial.suggest_categorical("layer",["21"])
     
     model = VGG16Model(layer).to(DEVICE)
     
@@ -362,6 +362,7 @@ def create_optuna_study():
     
     
 def main():
+    start = time.time()
     
     global TRIALS
     global ARGS
@@ -381,8 +382,13 @@ def main():
     TRIALS     = ARGS.trials
     BATCH_SIZE = ARGS.batch_size
     EPOCHS     = ARGS.epochs
+
     create_optuna_study()
-    
+    exec_time = time.time() - start
+    print(f"CPUs = {os.sched_getaffinity(0)}")
+    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+
+    print('Execution time in seconds: ' + str(exec_time))
     return
 
 if __name__ == "__main__":
