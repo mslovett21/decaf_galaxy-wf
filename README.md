@@ -84,4 +84,4 @@ python vgg16_hpo.py
 ![img](Galaxy-Decaf.png)
 
 ### Confusion Matrix
-![img](Galaxy-Decaf.png)
+![img](confusion_matrix_unnorm.png)
