@@ -80,5 +80,8 @@ python vgg16_hpo.py
 ```
 
 
+### Decaf and Pegasus
+![img](Galaxy-Decaf.png)
 
+### Confusion Matrix
 ![img](Galaxy-Decaf.png)
