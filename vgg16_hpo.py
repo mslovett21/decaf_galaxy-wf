@@ -29,7 +29,7 @@ timestr = time.strftime("%Y%m%d-%H%M%S")
 # Paths:
 
 REL_PATH = "./"
-DATA_DIR = "final_galaxy_dataset/"
+DATA_DIR = "galaxy_data/"
 TRAIN_DATA_PATH  = REL_PATH + DATA_DIR 
 TEST_DATA_PATH   = REL_PATH + DATA_DIR
 VAL_DATA_PATH    = REL_PATH + DATA_DIR
@@ -339,7 +339,7 @@ def get_best_params(best):
     parameters["trial_id"] = best.number
     parameters["value"] = best.value
     parameters["params"] = best.params
-    f = open(VIS_RESULTS_PATH+"/best_vgg16_hpo_params.txt","w")
+    f = open("best_vgg16_hpo_params.txt","w")
     f.write(str(parameters))
     f.close()
 
@@ -385,8 +385,7 @@ def main():
 
     create_optuna_study()
     exec_time = time.time() - start
-    print(f"CPUs = {os.sched_getaffinity(0)}")
-    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+
 
     print('Execution time in seconds: ' + str(exec_time))
     return

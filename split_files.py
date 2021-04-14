@@ -6,8 +6,12 @@ import zipfile
 import random
 import glob
 
+
+
 INPUT_DIR  = "galaxy_data/"
-OUTPUT_DIR = "galaxy_data/"
+
+#INPUT_DIR  = "final_galaxy_dataset/"
+OUTPUT_DIR = INPUT_DIR
 #os.makedirs(OUTPUT_DIR)
 
 
@@ -24,7 +28,7 @@ def add_prefix(file_paths, prefix, output_dir):
 
 def split_data_filenames(file_paths):
     random.shuffle(file_paths)
-    train, val, test = np.split(file_paths, [int(len(file_paths)*0.7), int(len(file_paths)*0.8)])
+    train, val, test = np.split(file_paths, [int(len(file_paths)*0.8), int(len(file_paths)*0.9)])
     return train, val, test
 
 

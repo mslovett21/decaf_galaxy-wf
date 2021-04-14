@@ -12,7 +12,7 @@ import sys
 import argparse
 
 DATA_DIR = "galaxy-zoo-the-galaxy-challenge/images_training_rev1/"
-MAX_IMG   =  500
+MAX_IMG   =  100000
 
 def parse_args(args):
     parser = argparse.ArgumentParser(description="Enter description here")
@@ -26,7 +26,7 @@ def parse_args(args):
     parser.add_argument(
                 "-o",
                 "--output_dir",
-                default="galaxy_data/",
+                default="full_galaxy_data/",
                 help="directory where output files will be written to"
             )
 
@@ -59,7 +59,7 @@ def label_dataset(csv):
             label = '2'
         elif df.at[i,'Class1.2'] >= 0.430 and df.at[i,'Class2.1'] >= 0.602:
             label = '3'
-        elif df.at[i,'Class1.2'] >= 0.430 and df.at[i,'Class2.2'] >= 0.715 and df.at[i,'Class4.1'] >= 0.69:
+        elif df.at[i,'Class1.2'] >= 0.469 and df.at[i,'Class2.2'] >= 0.715 and df.at[i,'Class4.1'] >= 0.619:
             label = '4'
         else:
             continue
