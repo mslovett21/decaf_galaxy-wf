@@ -29,12 +29,12 @@ timestr = time.strftime("%Y%m%d-%H%M%S")
 # Paths:
 
 REL_PATH = "./"
-DATA_DIR = "galaxy_data/"
+DATA_DIR = "dev_galaxy_dataset/"
 TRAIN_DATA_PATH  = REL_PATH + DATA_DIR 
 TEST_DATA_PATH   = REL_PATH + DATA_DIR
 VAL_DATA_PATH    = REL_PATH + DATA_DIR
-CHECKPOINT_DIR   = REL_PATH + 'checkpoints/vgg16_galaxy/'
-VIS_RESULTS_PATH = REL_PATH + 'exp_results_details/vgg16_galaxy/' + timestr
+CHECKPOINT_DIR   = REL_PATH #+ 'checkpoints/vgg16_galaxy/'
+VIS_RESULTS_PATH = REL_PATH #+ 'exp_results_details/vgg16_galaxy/' + timestr
 
 try:
     os.makedirs(VIS_RESULTS_PATH)
@@ -83,8 +83,6 @@ def get_arguments():
 
 
 
-
-
 ### -------------------------FOR DATALOADER --------------------------------
 class ToTensorRescale(object):
     """Convert ndarrays in sample to Tensors."""
@@ -97,11 +95,8 @@ class ToTensorRescale(object):
                 "label" :label}
 
 
-
 ###################################################################################################        
-
 # Training loop
-
 def train_loop(model, tloader, vloader, criterion, optimizer):
     """
     returns loss and accuracy of the model for 1 epoch.
@@ -164,6 +159,7 @@ def train_loop(model, tloader, vloader, criterion, optimizer):
     
     v_epoch_accuracy = correct/total
     v_epoch_loss = np.average(valid_losses)
+    create_confusion_matrix(model, vloader)
         
     
     return t_epoch_loss, t_epoch_accuracy, v_epoch_loss, v_epoch_accuracy
@@ -309,8 +305,8 @@ def objective(trial,direction = "minimize"):
         print("--------------------------------------------------------")
 
         # Handle pruning based on the intermediate value.
-        if trial.should_prune():
-            raise optuna.exceptions.TrialPruned()
+ #       if trial.should_prune():
+ #           raise optuna.exceptions.TrialPruned()
         
         early_stop(epoch_val_loss, model)
     
@@ -330,6 +326,9 @@ def hpo_monitor(study, trial):
     """
     joblib.dump(study, CHECKPOINT_DIR+"/hpo_galaxy_vgg16.pkl")
     
+
+
+
 def get_best_params(best):
     """
     Saves best parameters of Optuna Study.

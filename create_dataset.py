@@ -12,7 +12,7 @@ import sys
 import argparse
 
 DATA_DIR = "galaxy-zoo-the-galaxy-challenge/images_training_rev1/"
-MAX_IMG   =  100000
+MAX_IMG   =  500
 
 def parse_args(args):
     parser = argparse.ArgumentParser(description="Enter description here")
@@ -26,7 +26,7 @@ def parse_args(args):
     parser.add_argument(
                 "-o",
                 "--output_dir",
-                default="full_galaxy_data/",
+                default="dev_galaxy_dataset/",
                 help="directory where output files will be written to"
             )
 
@@ -51,16 +51,18 @@ def label_dataset(csv):
 
     for i in range(len(df)):
         label = '$'
-        if df.at[i,'Class1.1'] >= 0.469 and df.at[i,'Class7.1'] >= 0.50:
+        if df.at[i,'Class1.1'] >= 0.469 and df.at[i,'Class7.1'] >= 0.500:
             label = '0'
-        elif df.at[i,'Class1.1'] >= 0.469 and df.at[i,'Class7.2'] >= 0.50:
+        elif df.at[i,'Class1.1'] >= 0.469 and df.at[i,'Class7.2'] >= 0.500:
             label = '1'
-        elif df.at[i,'Class1.1'] >= 0.469 and df.at[i,'Class7.3'] >= 0.50:
+        elif df.at[i,'Class1.1'] >= 0.469 and df.at[i,'Class7.3'] >= 0.500:
             label = '2'
         elif df.at[i,'Class1.2'] >= 0.430 and df.at[i,'Class2.1'] >= 0.602:
             label = '3'
-        elif df.at[i,'Class1.2'] >= 0.469 and df.at[i,'Class2.2'] >= 0.715 and df.at[i,'Class4.1'] >= 0.619:
-            label = '4'
+        # class 4 corresponds to class SPIRALE, there is an error in the table in the paper
+        # instead use what is provided in Table 1's description
+        elif df.at[i,'Class1.2'] >= 0.430 and df.at[i,'Class2.2'] >= 0.715 and df.at[i,'Class4.1'] >= 0.619:
+            label = '4' 
         else:
             continue
         if label != '$':

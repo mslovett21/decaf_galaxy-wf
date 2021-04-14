@@ -8,7 +8,7 @@ import glob
 
 
 
-INPUT_DIR  = "galaxy_data/"
+INPUT_DIR  = "full_galaxy_dataset/"
 
 #INPUT_DIR  = "final_galaxy_dataset/"
 OUTPUT_DIR = INPUT_DIR

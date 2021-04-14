@@ -3,7 +3,7 @@ import glob
 from PIL import Image
 
 
-INPUT_DIR  = "galaxy_data/"
+INPUT_DIR  = "full_galaxy_dataset/"
 
 
 

@@ -28,7 +28,7 @@ timestr = time.strftime("%Y%m%d-%H%M%S")
 # Paths:
 
 REL_PATH = "./"
-DATA_DIR = "galaxy_data/"
+DATA_DIR = "full_galaxy_dataset/"
 #DATA_DIR = "final_galaxy_dataset/"
 TRAIN_DATA_PATH  = REL_PATH + DATA_DIR 
 TEST_DATA_PATH   = REL_PATH + DATA_DIR
@@ -37,7 +37,7 @@ VAL_DATA_PATH    = REL_PATH + DATA_DIR
 CHECKPOINT_PATH  = "checkpoint_vgg16.pkl"
 EARLY_STOPPING_PATH = "early_stopping_vgg16_model.pth"
 VIS_RESULTS_PATH = REL_PATH + ''
-
+ADDITIONAL_TRANSFORMATION = False
 try:
     os.makedirs(VIS_RESULTS_PATH)
 except Exception as e:
@@ -138,6 +138,8 @@ def train_loop(model, tloader, vloader, criterion, optimizer):
     
     total = 0
     correct = 0
+    y_act = []
+    y_pred = []
     
     model.eval()
     with torch.no_grad():
@@ -154,9 +156,12 @@ def train_loop(model, tloader, vloader, criterion, optimizer):
             _, predicted = torch.max(output.data, 1)
             total += label.size(0)
             correct += (predicted==label).sum().item()
+            y_act.extend(label.cpu().tolist())
+            y_pred.extend(predicted.cpu().tolist())
        
     v_epoch_accuracy = correct/total
     v_epoch_loss = np.average(valid_losses)
+    plot_cm(y_act, y_pred)
         
     
     return t_epoch_loss, t_epoch_accuracy, v_epoch_loss, v_epoch_accuracy
@@ -204,7 +209,21 @@ def create_confusion_matrix(model, testloader):
     skplt.metrics.plot_confusion_matrix(labels,preds, normalize=False)
     plt.savefig(VIS_RESULTS_PATH + "/confusion_matrix_unnorm.png")
 
- 
+def plot_cm(lab, pred):
+    target_names = ["0","1","2","3", "4"]
+    cm = confusion_matrix(lab, pred)
+    # Normalise
+    cmn = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+    fig, ax = plt.subplots(figsize=(6,4))
+    sns.heatmap(cmn, annot=True, fmt='.2f', xticklabels=target_names, yticklabels=target_names, cmap = "YlGnBu")
+    plt.ylabel('Actual')
+    plt.xlabel('Predicted')
+    if ADDITIONAL_TRANSFORMATION :
+        plt.title("VGG-16 with data augmentation")
+    else:
+        plt.title("VGG-16 without data augmentation")
+    plt.savefig(VIS_RESULTS_PATH + "/confusion_matrix_norm.png")
+    plt.close()
 
 
 def draw_training_curves(train_losses, test_losses, curve_name):
@@ -237,19 +256,14 @@ def get_data_loader(prefix):
     data_transforms  = transforms.Compose([ToTensorRescale()])
 
     if prefix == "train":       
-
-        train_data  = GalaxyDataset( TRAIN_DATA_PATH ,prefix = prefix, transform = data_transforms)
-        train_loader = torch.utils.data.DataLoader(train_data, batch_size = BATCH_SIZE, shuffle=True)       
+        val_data     = GalaxyDataset( VAL_DATA_PATH, prefix = "val",transform= data_transforms)
+        train_data   = GalaxyDataset( TRAIN_DATA_PATH ,prefix = prefix, transform = data_transforms)
+        train_data   = torch.utils.data.ConcatDataset([train_data,val_data])
+        train_loader = torch.utils.data.DataLoader(train_data, batch_size = BATCH_SIZE, shuffle=True)      
         return train_loader
     
-    elif prefix == "val":
-        
-        val_data   = GalaxyDataset( VAL_DATA_PATH, prefix = prefix,transform= data_transforms)
-        val_loader = torch.utils.data.DataLoader(val_data, batch_size = BATCH_SIZE, shuffle=True)
-        return val_loader
     
     elif prefix == "test":
-
         test_data   = GalaxyDataset( TEST_DATA_PATH,prefix = prefix, transform= data_transforms)  
         test_loader = torch.utils.data.DataLoader(test_data, batch_size = BATCH_SIZE, shuffle=True)       
         return test_loader
@@ -262,7 +276,7 @@ def train_model(best_params):
     print("Training model")
     
     train_loader = get_data_loader("train")
-    val_loader   = get_data_loader("val")
+    val_loader   = get_data_loader("test")
 
     layer   = best_params["layer"]
     lr_body = best_params["lr_body"]
