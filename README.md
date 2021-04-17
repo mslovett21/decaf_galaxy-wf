@@ -37,6 +37,12 @@ python train_model.py --epochs 10
 ```
 
 
+RUN 
+
+```python
+python eval_model.py 
+```
+
 ```
 CWD   (study object checkpoint and early stopping weights for all of the trials)
 CWD   (here we get loss function plot and txt with best HPO from all trials)  
