@@ -4,7 +4,7 @@
 
 ### Data
 
-For first experiments I created a smaller dataset with 2500 images you can find in galaxy_dev/
+For first experiments I created a smaller dataset with 2500 images you can find in dev_galaxy_dataset/
 The data is split into train, val and test sets vis prefixes (this is more natural for Pegasus)
 
 For HPO we use:
@@ -16,28 +16,27 @@ val set with 250 images
 You need these scripts for the experiments
 
 * model_selection.py - has definition of the pretrained model and early stopping modules
-* data_loader.py  - custom dataset loader is defined here
+* data_loader.py  - custom dataset loader is defined here, HERE WE CACHE WHOLE DATASET IN MEMORY
 * vgg16_hpo.py - experiment driver
 
 
 RUN 
 
 ```python
-python vgg16_hpo.py --trials 3 --epochs 5
+python vgg16_hpo.py --trials 3 --epochs 10
 ```
 
 The script creates a number of artifacts: checkpoints, plots and txt with best results.
 
 
 ```
-/checkpoints/vgg16_galaxy/    (study object checkpoint and early stopping weights for all of the trials)
-/exp_results_details/timestamp/         (here we get loss function plot and txt with best HPO from all trials)  
+CWD   (study object checkpoint and early stopping weights for all of the trials)
+CWD   (here we get loss function plot and txt with best HPO from all trials)  
 ```
 
 
-
-This model overfitts. You can get tranining acuracy that is higher than validation accuracy very fast. There has to be data augmentation added.
-The final version will be training on bigger more diverse dataset (where augmentation techniques like horizontal flip, jitter and so on are added).
+You do not need to create your own dataset. For dev dataset use dev_galaxy_dataset
+for experiments on full dataset use full_galaxy_dataset
 
 ```
     
@@ -54,7 +53,6 @@ optional arguments:
   --save SAVE           path to checkpoint save directory
   --epochs EPOCHS       number of training epochs
   --trials TRIALS       number of HPO trials                      (default: 2)
-  --ex_rate EX_RATE     info exchange rate in HPO                 (default: 2)
 
 ```
 
