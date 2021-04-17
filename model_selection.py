@@ -123,6 +123,6 @@ class EarlyStopping:
         """
         saves the current best version of the model if there is decrease in validation loss
         """
-        #torch.save(model.state_dict(), self.path)
+        torch.save(model.state_dict(), self.path)
         self.vall_loss_min = val_loss
         

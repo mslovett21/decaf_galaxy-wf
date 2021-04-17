@@ -29,6 +29,14 @@ python vgg16_hpo.py --trials 3 --epochs 10
 The script creates a number of artifacts: checkpoints, plots and txt with best results.
 
 
+
+RUN 
+
+```python
+python train_model.py --epochs 10
+```
+
+
 ```
 CWD   (study object checkpoint and early stopping weights for all of the trials)
 CWD   (here we get loss function plot and txt with best HPO from all trials)  

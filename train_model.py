@@ -28,7 +28,7 @@ timestr = time.strftime("%Y%m%d-%H%M%S")
 # Paths:
 
 REL_PATH = "./"
-DATA_DIR = "full_galaxy_dataset/"
+DATA_DIR = "dev_galaxy_dataset/"
 #DATA_DIR = "final_galaxy_dataset/"
 TRAIN_DATA_PATH  = REL_PATH + DATA_DIR 
 TEST_DATA_PATH   = REL_PATH + DATA_DIR
@@ -256,16 +256,17 @@ def get_data_loader(prefix):
     data_transforms  = transforms.Compose([ToTensorRescale()])
 
     if prefix == "train":       
-        val_data     = GalaxyDataset( VAL_DATA_PATH, prefix = "val",transform= data_transforms)
-        train_data   = GalaxyDataset( TRAIN_DATA_PATH ,prefix = prefix, transform = data_transforms)
-        train_data   = torch.utils.data.ConcatDataset([train_data,val_data])
-        train_loader = torch.utils.data.DataLoader(train_data, batch_size = BATCH_SIZE, shuffle=True)      
+        val_data     = GalaxyDataset( VAL_DATA_PATH, prefix = "val",use_cache=False,transform= data_transforms)
+        train_data   = GalaxyDataset( TRAIN_DATA_PATH ,prefix = prefix, use_cache=False,transform = data_transforms)
+#        train_data   = torch.utils.data.ConcatDataset([train_data,val_data])
+# TODO - both train and val should be loaded
+        train_loader = torch.utils.data.DataLoader(train_data, num_workers = 0, batch_size = BATCH_SIZE, shuffle=True)      
         return train_loader
     
     
     elif prefix == "test":
-        test_data   = GalaxyDataset( TEST_DATA_PATH,prefix = prefix, transform= data_transforms)  
-        test_loader = torch.utils.data.DataLoader(test_data, batch_size = BATCH_SIZE, shuffle=True)       
+        test_data   = GalaxyDataset( TEST_DATA_PATH,prefix = prefix,use_cache=False, transform= data_transforms)  
+        test_loader = torch.utils.data.DataLoader(test_data, num_workers = 0, batch_size = BATCH_SIZE, shuffle=True)       
         return test_loader
     
 ###################################################################################################  
@@ -299,6 +300,7 @@ def train_model(best_params):
 
     try:
         model, optimizer, start_epoch = load_checkpoint(model, optimizer)
+        print("Checkpoint loaded. Restarting training.")
     except Exception as e:
         print("Checkpoint not found. Training from scratch.")
     
@@ -306,6 +308,9 @@ def train_model(best_params):
 
         for epoch in range(start_epoch, EPOCHS):
             print("Running Epoch {}".format(epoch+1))
+            if epoch > 0:
+                train_loader.dataset.set_use_cache(use_cache=True)
+                val_loader.dataset.set_use_cache(use_cache=True)
 
             epoch_train_loss, epoch_train_acc, epoch_val_loss, epoch_val_acc = train_loop(model, train_loader, val_loader, criterion, optimizer)
             train_loss.append(epoch_train_loss)
