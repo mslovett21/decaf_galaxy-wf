@@ -1,5 +1,4 @@
-# Required libraries
-
+#!/usr/bin/env python3
 import torch
 import argparse
 import torchvision
@@ -8,6 +7,7 @@ import optuna
 import joblib
 import sys
 from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import WeightedRandomSampler
 from PIL import Image
 import seaborn as sns
 import numpy as np
@@ -33,14 +33,10 @@ DATA_DIR = "dev_galaxy_dataset/"
 TRAIN_DATA_PATH  = REL_PATH + DATA_DIR 
 TEST_DATA_PATH   = REL_PATH + DATA_DIR
 VAL_DATA_PATH    = REL_PATH + DATA_DIR
-CHECKPOINT_DIR   = REL_PATH #+ 'checkpoints/vgg16_galaxy/'
-VIS_RESULTS_PATH = REL_PATH #+ 'exp_results_details/vgg16_galaxy/' + timestr
+CHECKPOINT_DIR   = REL_PATH 
+VIS_RESULTS_PATH = REL_PATH 
 
-try:
-    os.makedirs(VIS_RESULTS_PATH)
-    os.makedirs(CHECKPOINT_DIR)
-except Exception as e:
-    print(e)
+
 
 # Constant variabless
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -75,7 +71,6 @@ def get_arguments():
     parser.add_argument('--save', type=str, default = REL_PATH + 'checkpoints/vgg16_galaxy/',help='path to checkpoint save directory ')
     parser.add_argument('--epochs', type=int,default=1, help = "number of training epochs")
     parser.add_argument('--trials', type=int, default=2, help = "number of HPO trials")
-    parser.add_argument('--ex_rate',type=int,default=2, help = "info exchange rate in HPO")
     
     args = parser.parse_args()
     
@@ -93,6 +88,7 @@ class ToTensorRescale(object):
         image = image.transpose((2, 0, 1))
         return {"image":torch.from_numpy(image),
                 "label" :label}
+
 
 
 ###################################################################################################        
@@ -119,8 +115,7 @@ def train_loop(model, tloader, vloader, criterion, optimizer):
         image,label   = sample_batch["image"].float(), sample_batch["label"]
      
         image = image.to(DEVICE)
-        label = label.to(DEVICE)
-        
+        label = label.to(DEVICE)       
         optimizer.zero_grad()
 
         output = model(image)
@@ -155,13 +150,10 @@ def train_loop(model, tloader, vloader, criterion, optimizer):
             _, predicted = torch.max(output.data, 1)
             total += label.size(0)
             correct += (predicted==label).sum().item()
-    
-    
+      
     v_epoch_accuracy = correct/total
     v_epoch_loss = np.average(valid_losses)
     create_confusion_matrix(model, vloader)
-        
-    
     return t_epoch_loss, t_epoch_accuracy, v_epoch_loss, v_epoch_accuracy
 
 
@@ -201,15 +193,16 @@ def create_confusion_matrix(model, testloader):
     
     preds, labels = get_all_preds(model, testloader)
     
-    preds = preds.cpu().tolist()
+    preds  = preds.cpu().tolist()
     labels = labels.cpu().tolist()
-    cm = confusion_matrix(labels, preds)
+    cm     = confusion_matrix(labels, preds)
     
     skplt.metrics.plot_confusion_matrix(labels, preds, normalize=True)
     
     plt.savefig(VIS_RESULTS_PATH + "/confusion_matrix_norm.png")
     skplt.metrics.plot_confusion_matrix(labels,preds, normalize=False)
     plt.savefig(VIS_RESULTS_PATH + "/confusion_matrix_unnorm.png")
+    plt.close()
 
     
 def draw_training_curves(train_losses, test_losses, curve_name, trial_num):
@@ -231,6 +224,7 @@ def draw_training_curves(train_losses, test_losses, curve_name, trial_num):
     plt.plot(test_losses, label='Testing {}'.format(curve_name))
     plt.legend(frameon=False)
     plt.savefig(VIS_RESULTS_PATH + "/{}_vgg16_trial_{}.png".format(curve_name, trial_num))
+    plt.close()
 
     
 
@@ -239,24 +233,25 @@ def get_data_loader(prefix):
     returns train/test/val dataloaders
     params: flag = train/test/val
     """
-    data_transforms  = transforms.Compose([ToTensorRescale()])
+
+    data_transforms = transforms.Compose([ToTensorRescale()])
 
     if prefix == "train":       
 
-        train_data  = GalaxyDataset( TRAIN_DATA_PATH ,prefix = prefix, transform = data_transforms)
-        train_loader = torch.utils.data.DataLoader(train_data, batch_size = BATCH_SIZE, shuffle=True)       
+        train_data  = GalaxyDataset( TRAIN_DATA_PATH ,prefix = prefix,use_cache=False, transform = data_transforms)
+        train_loader = torch.utils.data.DataLoader(train_data, num_workers = 0, batch_size = BATCH_SIZE, shuffle=True)       
         return train_loader
     
     elif prefix == "val":
         
-        val_data   = GalaxyDataset( VAL_DATA_PATH, prefix = prefix,transform= data_transforms)
-        val_loader = torch.utils.data.DataLoader(val_data, batch_size = BATCH_SIZE, shuffle=True)
+        val_data   = GalaxyDataset( VAL_DATA_PATH, prefix = prefix, use_cache=False,transform= ToTensorRescale())
+        val_loader = torch.utils.data.DataLoader(val_data,num_workers = 0, batch_size = BATCH_SIZE, shuffle=True)
         return val_loader
     
     elif prefix == "test":
 
-        test_data   = GalaxyDataset( TEST_DATA_PATH,prefix = prefix, transform= data_transforms)  
-        test_loader = torch.utils.data.DataLoader(test_data, batch_size = BATCH_SIZE, shuffle=True)       
+        test_data   = GalaxyDataset( TEST_DATA_PATH,prefix = prefix,use_cache=False, transform= ToTensorRescale())  
+        test_loader = torch.utils.data.DataLoader(test_data, num_workers = 0, batch_size = BATCH_SIZE, shuffle=True)       
         return test_loader
     
 ###################################################################################################  
@@ -270,16 +265,13 @@ def objective(trial,direction = "minimize"):
     train_loader = get_data_loader("train")
     val_loader   = get_data_loader("val")
 
+
     
-    layer = trial.suggest_categorical("layer",["21"])
-    
-    model = VGG16Model(layer).to(DEVICE)
-    
+    layer     = trial.suggest_categorical("layer",["21"])    
+    model     = VGG16Model(layer).to(DEVICE)    
     criterion = torch.nn.CrossEntropyLoss().to(DEVICE)
-    
-    lr_body = trial.suggest_categorical("lr_body", [1e-7, 1e-8, 1e-9])
-    lr_head = trial.suggest_categorical("lr_head", [1e-4, 1e-5, 1e-6])
-    
+    lr_body   = trial.suggest_categorical("lr_body", [1e-7, 1e-8, 1e-9])
+    lr_head   = trial.suggest_categorical("lr_head", [1e-4, 1e-5, 1e-6])
     optimizer = torch.optim.Adam([{'params': model.body.parameters(), 'lr':lr_body},
                                  {'params':model.head.parameters(), 'lr':lr_head}])
     
@@ -293,6 +285,9 @@ def objective(trial,direction = "minimize"):
     
     for epoch in range(EPOCHS):
         print("Running Epoch {}".format(epoch+1))
+        if epoch > 0:
+            train_loader.dataset.set_use_cache(use_cache=True)
+            val_loader.dataset.set_use_cache(use_cache=True)
 
         epoch_train_loss, epoch_train_acc, epoch_val_loss, epoch_val_acc = train_loop(model, train_loader, val_loader, criterion, optimizer)
         train_loss.append(epoch_train_loss)
@@ -302,12 +297,7 @@ def objective(trial,direction = "minimize"):
         total_loss += epoch_val_loss
         print("Training loss: {0:.4f}  Train Accuracy: {1:0.2f}".format(epoch_train_loss, epoch_train_acc))
         print("Validation loss: {0:.4f}  Validation Accuracy: {1:0.2f}".format(epoch_val_loss, epoch_val_acc))
-        print("--------------------------------------------------------")
-
-        # Handle pruning based on the intermediate value.
- #       if trial.should_prune():
- #           raise optuna.exceptions.TrialPruned()
-        
+        print("--------------------------------------------------------")       
         early_stop(epoch_val_loss, model)
     
         if early_stop.early_stop:
@@ -324,7 +314,7 @@ def hpo_monitor(study, trial):
     """
     Save optuna hpo study
     """
-    joblib.dump(study, CHECKPOINT_DIR+"/hpo_galaxy_vgg16.pkl")
+    joblib.dump(study, CHECKPOINT_DIR+"hpo_galaxy_vgg16.pkl")
     
 
 
@@ -343,26 +333,34 @@ def get_best_params(best):
     f.close()
 
 
-
+#####
+# Checkpointing we can restart existing study
+####
 def create_optuna_study():
-    
+
+    global STUDY
+    load_checkpoint_flag = True
     try:
-        STUDY = optuna.create_study(study_name='Galaxy Classification')
-        print("Number of trials to perfrom {}".format(TRIALS))
-        STUDY.optimize(objective, n_trials=TRIALS, callbacks=[hpo_monitor])
-
+        STUDY = joblib.load("hpo_galaxy_vgg16.pkl")
+        todo_trials = TRIALS - len(STUDY.trials_dataframe())
+        if todo_trials > 0 :
+            print("There are {} trials to do out of {}".format(todo_trials, TRIALS))
+            STUDY.optimize(objective, n_trials=todo_trials,  callbacks=[hpo_monitor])
+            best_trial = STUDY.best_trial
+            get_best_params(best_trial)
+        else:
+            print("This study is finished. Nothing to do.")
     except Exception as e:
-        print(e)
+        STUDY = optuna.create_study(direction = 'minimize', study_name='Galaxy Classification')
+        STUDY.optimize(objective, n_trials= TRIALS,  callbacks=[hpo_monitor])
+        best_trial = STUDY.best_trial
+        get_best_params(best_trial)
 
-    best_trial = STUDY.best_trial
-    get_best_params(best_trial)
-
-    return
     
     
 def main():
-    start = time.time()
-    
+
+    start = time.time()   
     global TRIALS
     global ARGS
     global BATCH_SIZE

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 
 import torch
 import argparse
@@ -52,7 +53,7 @@ class VGG16Model(torch.nn.Module):
                     torch.nn.Linear(in_features= 512, out_features=64, bias=True), #not such a steep jump
                     torch.nn.BatchNorm1d(64),
                     torch.nn.ReLU(),
-                    torch.nn.Dropout(0.4),
+                    torch.nn.Dropout(0.3),
                     torch.nn.Linear(64,5)
         )
 
