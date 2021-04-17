@@ -34,10 +34,11 @@ TRAIN_DATA_PATH  = REL_PATH + DATA_DIR
 TEST_DATA_PATH   = REL_PATH + DATA_DIR
 VAL_DATA_PATH    = REL_PATH + DATA_DIR
 
-CHECKPOINT_PATH  = "checkpoint_vgg16.pkl"
-EARLY_STOPPING_PATH = "early_stopping_vgg16_model.pth"
-VIS_RESULTS_PATH = REL_PATH + ''
-ADDITIONAL_TRANSFORMATION = False
+CHECKPOINT_PATH       = "checkpoint_vgg16.pkl"
+EARLY_STOPPING_PATH   = "early_stopping_vgg16_model.pth"
+FINAL_CHECKPOINT_PATH = "final_vgg16_model.pth"
+VIS_RESULTS_PATH      = REL_PATH + ''
+
 try:
     os.makedirs(VIS_RESULTS_PATH)
 except Exception as e:
@@ -218,10 +219,7 @@ def plot_cm(lab, pred):
     sns.heatmap(cmn, annot=True, fmt='.2f', xticklabels=target_names, yticklabels=target_names, cmap = "YlGnBu")
     plt.ylabel('Actual')
     plt.xlabel('Predicted')
-    if ADDITIONAL_TRANSFORMATION :
-        plt.title("VGG-16 with data augmentation")
-    else:
-        plt.title("VGG-16 without data augmentation")
+    plt.title("VGG-16")
     plt.savefig(VIS_RESULTS_PATH + "/confusion_matrix_norm.png")
     plt.close()
 
@@ -321,18 +319,20 @@ def train_model(best_params):
             print("Training loss: {0:.4f}  Train Accuracy: {1:0.2f}".format(epoch_train_loss, epoch_train_acc))
             print("Validation loss: {0:.4f}  Validation Accuracy: {1:0.2f}".format(epoch_val_loss, epoch_val_acc))
             print("--------------------------------------------------------")
-
-            
+           
             early_stop(epoch_val_loss, model)
         
             if early_stop.early_stop:
+                os.rename(EARLY_STOPPING_PATH, FINAL_CHECKPOINT_PATH)
                 break
 
             if epoch % 2 == 0:
-                save_checkpoint(model, optimizer, epoch)
+                save_checkpoint(model, optimizer, epoch,layer, CHECKPOINT_PATH)
         
         draw_training_curves(train_loss, val_loss, "loss")
         
+        if not early_stop.early_stop:
+            save_checkpoint(model, optimizer, epoch,layer,FINAL_CHECKPOINT_PATH)
         
         total_loss/=EPOCHS
     else:
@@ -349,11 +349,14 @@ def load_checkpoint(model, optimizer):
     epoch = checkpoint['epoch']
     return model, optimizer,epoch
 
-def save_checkpoint(model, optimizer, epoch):
+
+
+def save_checkpoint(model, optimizer, epoch, layer,checkpoint_path):
     torch.save({
             'epoch': epoch,
+            'layer': layer,
             'model_state_dict': model.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict()}, CHECKPOINT_PATH)
+            'optimizer_state_dict': optimizer.state_dict()}, checkpoint_path)
 
 
 
