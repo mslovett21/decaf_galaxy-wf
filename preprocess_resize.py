@@ -1,24 +1,27 @@
+#!/usr/bin/env python3
 import random
 import glob
+import sys
+import argparse
 from PIL import Image
 
 
-INPUT_DIR  = "full_galaxy_dataset/"
 
-
-
-#INPUT_DIR  = "final_galaxy_dataset/"
-OUTPUT_DIR = INPUT_DIR
-
-
-
-
-
+def parse_args(args):
+    parser = argparse.ArgumentParser(description="Enter description here")
+    parser.add_argument(
+        "-i","--input_dir",default="full_galaxy_dataset/",
+        help="directory with data"
+        )
+    return parser.parse_args(args)
 
 
 
 def main():
-    all_images = glob.glob(INPUT_DIR + "*.jpg")
+    args = parse_args(sys.argv[1:])
+    input_dir  = args.input_dir
+
+    all_images = glob.glob(input_dir + "*.jpg")
 
     for img_path in all_images:
         img = Image.open(img_path)
@@ -33,8 +36,6 @@ def main():
 
         img = img.crop((left, top, right, bottom))
         img.save(img_path)
-
-
 
 
 

@@ -7,10 +7,7 @@ import glob, os
 import cv2
 import argparse
 import time
-
 from IPython import embed
-
-INPUT_DIR  = "test/"
 
 
 #| Class    |  Train |  Val   | Test   |
@@ -20,27 +17,33 @@ INPUT_DIR  = "test/"
 #| class 2  |   464  |   62   |   53   |
 #| class 3  |  3141  |  364   |  398   |
 #| class 4  |  6247  |  778   |  781   |
+#--------------------------------------|
 #| TOTAL    | 23034  | 2879   | 2880   |
 
 
-#INPUT_DIR  = "final_galaxy_dataset/"
-OUTPUT_DIR = INPUT_DIR
+IMG_SIZE    = 150
+DATASET_DIR = ""
+
 
 def get_arguments():
     
     parser = argparse.ArgumentParser(description="Galaxy Classification: data augmentation")   
     parser.add_argument('--class_str', type=str, default='class_2',help='class to augment')
-    parser.add_argument('--num', type=int, default=10,help='number of images to create')   
+    parser.add_argument('--num', type=int, default=10,help='number of images to create')  
+    parser.add_argument(
+        "-i","--input_dir",default="dev_galaxy_dataset/",
+        help="directory with data"
+        )
+    parser.add_argument(
+        "-o","--output_dir",default="dev_galaxy_dataset/",
+        help="directory for outputs"
+        ) 
     args = parser.parse_args()    
     return args
 
 
-IMG_SIZE = 150
-DATASET_DIR = ""
-
 class DataAugmentation:
-    gaussian = np.random.normal(0, 0.3, (IMG_SIZE ,IMG_SIZE,3 ) )
-    
+   
     def load_img(self,img_path):
         return cv2.imread(img_path)
 
@@ -74,10 +77,6 @@ class DataAugmentation:
             image = cv2.flip(image, flipCode=c)
         return image
 
-    def add_gaussian_noise(self, img):
-        return img + self.gaussian
-
-    
     
     def image_augment(self, path): 
         '''
@@ -101,12 +100,15 @@ class DataAugmentation:
 
 
 def add_augmented_data(class_str, num):
+    print("Data augmentation")
     augmentation = DataAugmentation()
     all_images = glob.glob(INPUT_DIR +"train_"+class_str+ "*.jpg")
+    print(all_images)
     new_images = 0
     img_num = 4000
     while new_images < num:
         for img_path in all_images:
+            print(img_path)
             augmented_img = augmentation.image_augment(img_path)
             path_s, _ = img_path.split(".")
             fname = "_".join(path_s.split("_")[:3])
@@ -119,13 +121,19 @@ def add_augmented_data(class_str, num):
 
 
 def main():
+    
     global ARGS
+    global INPUT_DIR
+    global OUTPUT_DIR
     
-    start     = time.time()
-    ARGS      = get_arguments()   
-    class_str = ARGS.class_str
-    num       = ARGS.num
-    
+    start      = time.time()
+    ARGS       = get_arguments()   
+    class_str  = ARGS.class_str
+    num        = ARGS.num
+    INPUT_DIR  = ARGS.input_dir
+    OUTPUT_DIR = ARGS.output_dir
+    print(INPUT_DIR)
+
     add_augmented_data(class_str, num)
 
     exec_time = time.time() - start
