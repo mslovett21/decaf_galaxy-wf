@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # coding: utf-8
-
 import numpy as np
 import pandas as pd
 import os       
@@ -10,27 +9,31 @@ from glob import glob
 from pathlib import Path
 import sys
 import argparse
+from os import path
 
-DATA_DIR = "galaxy-zoo-the-galaxy-challenge/images_training_rev1/"
-MAX_IMG   =  500
+
+DATA_DIR      = "galaxy-zoo-the-galaxy-challenge/images_training_rev1/"
+METADATA_FILE = 'galaxy-zoo-the-galaxy-challenge/training_solutions_rev1.csv'
 
 def parse_args(args):
+    
     parser = argparse.ArgumentParser(description="Enter description here")
+    
     parser.add_argument(
-                "-i",
-                "--input_dir",
-                default="galaxy-zoo-the-galaxy-challenge/images_training_rev1/",
-                help="directory where input files will be read from"
-            )
-
+        "-i","--input_dir", default="galaxy-zoo-the-galaxy-challenge/images_training_rev1/",
+        help="directory with images"
+        )
     parser.add_argument(
-                "-o",
-                "--output_dir",
-                default="dev_galaxy_dataset/",
-                help="directory where output files will be written to"
-            )
+        "-o","--output_dir",default="full_galaxy_dataset_raw/",
+        help="directory for outputs"
+        )
+    parser.add_argument(
+        "-m","--max_img",type= int,default= 500,
+        help="number of instances of each class"
+        )
 
     return parser.parse_args(args)
+
 
 def insert(df, row):
     insert_loc = df.index.max()
@@ -39,6 +42,7 @@ def insert(df, row):
         df.loc[0] = row
     else:
         df.loc[insert_loc + 1] = row
+
         
 def label_dataset(csv):        
     df = pd.read_csv(csv)
@@ -71,31 +75,29 @@ def label_dataset(csv):
             continue
             
     return new_df
+
+
+
     
 def main():
+    
     args = parse_args(sys.argv[1:])
     input_path = args.input_dir
+    MAX_IMG    = args.max_img
     
     f = os.listdir(input_path)
     input_files = [i for i in f if ".jpg" in i]
-    print("Input files")
-    print(len(input_files))
-    df = label_dataset('galaxy-zoo-the-galaxy-challenge/training_solutions_rev1.csv')
-    print(len(df))
-    try:
-        os.makedirs(args.output_path)
-    except Exception as e:
-        pass
-
-
-    
+    df = label_dataset(METADATA_FILE)
     output_path = args.output_dir
+
+    if not path.exists(output_path):
+        os.makedirs(output_path)
     
-    count1 =0
-    count2 =0
-    count3 =0
-    count4 =0
-    count5 =0
+    count1 = 0
+    count2 = 0
+    count3 = 0
+    count4 = 0
+    count5 = 0
 
     for i in range(len(df)):
         try:
