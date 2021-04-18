@@ -5,14 +5,33 @@ import numpy as np
 import zipfile
 import random
 import glob
-
-
+import sys
+import argparse
+from os import path
+from IPython import embed
 
 INPUT_DIR  = "full_galaxy_dataset/"
 
-#INPUT_DIR  = "final_galaxy_dataset/"
 OUTPUT_DIR = INPUT_DIR
-#os.makedirs(OUTPUT_DIR)
+
+
+
+
+def parse_args(args):
+    parser = argparse.ArgumentParser(description="Enter description here")
+    parser.add_argument(
+        "-i","--input_dir",default="full_galaxy_dataset_raw/",
+        help="directory with data"
+        )
+    parser.add_argument(
+        "-o","--output_dir",default="full_galaxy_dataset/",
+        help="directory for outputs"
+        )
+    parser.add_argument(
+        "-s","--seed",type= int,default=10,
+        help="seed for random"
+        )
+    return parser.parse_args(args)
 
 
 
@@ -26,7 +45,8 @@ def add_prefix(file_paths, prefix, output_dir):
     return new_paths
 
 
-def split_data_filenames(file_paths):
+def split_data_filenames(file_paths,seed):
+    random.seed(seed)
     random.shuffle(file_paths)
     train, val, test = np.split(file_paths, [int(len(file_paths)*0.8), int(len(file_paths)*0.9)])
     return train, val, test
@@ -34,11 +54,20 @@ def split_data_filenames(file_paths):
 
 
 def main():
-    all_images = glob.glob(INPUT_DIR + "*.jpg")
-    train, val, test = split_data_filenames(all_images)
-    pf_train = add_prefix(train, "train",OUTPUT_DIR)
-    pf_val = add_prefix(val, "val",OUTPUT_DIR)
-    pf_test = add_prefix(test, "test",OUTPUT_DIR)
+    
+    args = parse_args(sys.argv[1:])
+    input_dir  = args.input_dir
+    output_dir = args.output_dir
+    seed       = args.seed
+    
+    if not path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    all_images = glob.glob(input_dir + "*.jpg")
+    train, val, test = split_data_filenames(all_images,seed)
+    pf_train = add_prefix(train, "train",output_dir)
+    pf_val = add_prefix(val, "val",output_dir)
+    pf_test = add_prefix(test, "test",output_dir)
 
 
 
