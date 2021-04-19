@@ -7,7 +7,7 @@ import glob, os
 import cv2
 import argparse
 import time
-from IPython import embed
+
 
 
 #| Class    |  Train |  Val   | Test   |

@@ -5,7 +5,7 @@ import sys
 import argparse
 from PIL import Image
 
-from IPython import embed
+
 
 def parse_args(args):
     parser = argparse.ArgumentParser(description="Enter description here")

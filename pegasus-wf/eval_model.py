@@ -23,7 +23,7 @@ import time
 from model_selection import EarlyStopping, VGG16Model
 from data_loader import GalaxyDataset
 
-from IPython import embed
+
 timestr = time.strftime("%Y%m%d-%H%M%S")
 
 ###################################################################################################
