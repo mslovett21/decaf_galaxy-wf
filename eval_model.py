@@ -6,6 +6,7 @@ import os
 import joblib
 import sys
 from torch.utils.data import Dataset, DataLoader
+from torch.autograd import Variable
 from PIL import Image
 import seaborn as sns
 import numpy as np
@@ -15,6 +16,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 from torchsummary import summary
 import torchvision.transforms as transforms
+from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
 import gc
 import logging
 import time
@@ -31,7 +33,7 @@ DATA_DIR = "dev_galaxy_dataset/"
 TEST_DATA_PATH        = REL_PATH + DATA_DIR 
 VIS_RESULTS_PATH      = REL_PATH + ''
 FINAL_CHECKPOINT_PATH = "final_vgg16_model.pth"
-
+results_record = open(VIS_RESULTS_PATH+"/exp_results.csv", 'w+')
 
 try:
     os.makedirs(VIS_RESULTS_PATH)
@@ -79,6 +81,9 @@ class ToTensorRescale(object):
 
 ###################################################################################################        
 
+
+
+
 def run_inference(model,  vloader):
     total   = 0
     correct = 0
@@ -93,15 +98,19 @@ def run_inference(model,  vloader):
             image  = image.to(DEVICE)
             label  = label.to(DEVICE)
             output = model(image)
-
             _, predicted = torch.max(output.data, 1)
             total += label.size(0)
             correct += (predicted==label).sum().item()
             y_act.extend(label.cpu().tolist())
             y_pred.extend(predicted.cpu().tolist())
        
-    v_epoch_accuracy = correct/total
-    plot_cm(y_act, y_pred)   
+    accuracy = correct/total
+    prec, recall, fscore, _ = precision_recall_fscore_support(y_act, y_pred, average='macro')
+    results_record.write("Acc: {}, Prec: {}, recall: {}, fscore: {} \n".format(accuracy, prec, recall, fscore))
+    cm = confusion_matrix(y_act, y_pred)
+    results_record.write(str(cm))
+    plot_cm(y_act, y_pred)
+
     return
 
 
@@ -119,6 +128,7 @@ def plot_cm(lab, pred):
     plt.title("VGG-16")
     plt.savefig(VIS_RESULTS_PATH + "/final_confusion_matrix_norm.png")
     plt.close()
+
 
 
 
@@ -148,7 +158,6 @@ def test_model(best_params):
         print("Read in the weights with the model.")
     except Exception as e:
         print(e)
-
     return
 
 

@@ -28,7 +28,7 @@ timestr = time.strftime("%Y%m%d-%H%M%S")
 # Paths:
 
 REL_PATH = "./"
-DATA_DIR = "dev_galaxy_dataset/"
+DATA_DIR = "full_galaxy_dataset/"
 #DATA_DIR = "final_galaxy_dataset/"
 TRAIN_DATA_PATH  = REL_PATH + DATA_DIR 
 TEST_DATA_PATH   = REL_PATH + DATA_DIR

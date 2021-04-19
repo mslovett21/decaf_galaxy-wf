@@ -20,7 +20,6 @@ You need these scripts for the experiments
 * vgg16_hpo.py - experiment driver
 
 
-RUN 
 
 ```python
 python vgg16_hpo.py --trials 3 --epochs 10
@@ -28,24 +27,13 @@ python vgg16_hpo.py --trials 3 --epochs 10
 
 The script creates a number of artifacts: checkpoints, plots and txt with best results.
 
-
-
-RUN 
-
 ```python
 python train_model.py --epochs 10
 ```
 
 
-RUN 
-
 ```python
 python eval_model.py 
-```
-
-```
-CWD   (study object checkpoint and early stopping weights for all of the trials)
-CWD   (here we get loss function plot and txt with best HPO from all trials)  
 ```
 
 
@@ -68,27 +56,6 @@ optional arguments:
   --epochs EPOCHS       number of training epochs
   --trials TRIALS       number of HPO trials                      (default: 2)
 
-```
-
-## General Instructions 
-### Step 1: Download Dataset
-
-https://www.kaggle.com/c/galaxy-zoo-the-galaxy-challenge
-
-### Step 2: Run Dataset Generating Script
-
-```python
-python create_dataset.py
-```
-### Step 3: Split Dataset into Train, Test and Validation Set
-
-```python
-python split_data.py
-```
-### Step 4: Tune Model with Optuna
-
-```python
-python vgg16_hpo.py
 ```
 
 
@@ -149,33 +116,59 @@ outputs:
 
 
 ### Preprocess: Resize all the images (N parallel jobs)
-
+Takes in all the files and then resize them. 
 
 ```python
 python preprocess_resize.py
 ```
+Rename files. (Needed for Pegasus)
+
 
 ### Preprocess: Data Augmentation
 
-
+Takes in all images of a given class e.g. train_class_3_*  
 ```python
-python augment_data.py
+python augment_data.py --num 15 --class_str class_3
 ```
+Outputs:
+train_class_3_4000.jpg, ... train_class_3_4014.jpg
+(15 new instances of class 3)
+
 
 ### HPO
 
 ```python
-python vgg16_hpo.py --epochs 10
+python vgg16_hpo.py --epochs 8 --trials 2
 ```
+Outputs:
+
+hpo_galaxy_vgg16.pkl (Checkpoint we can restart from)
+
+best_vgg16_hpo_params.txt
+
+early_stopping_vgg16_model_trial0.pth
+early_stopping_vgg16_model_trial1.pth
+
+
+
 
 ### Train Model
 
 ```python
 python train_model.py --epochs 10
 ```
+Outputs:
+checkpoint_vgg16.pth
+final_vgg16_model.pth
+loss_vgg16.png
+
+
 
 ### Evaluation
 
 ```python
 python eval_model.py 
 ```
+Outputs:
+final_confusion_matrix_norm.png
+exp_results.csv
