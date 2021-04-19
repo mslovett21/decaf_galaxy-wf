@@ -26,7 +26,7 @@ rc = ReplicaCatalog()
 all_images_paths = glob.glob("10_percent_dataset/*")
 input_images = []
 
-for image_path in dataset_images:
+for image_path in all_images_paths:
     name = image_path.split("/")[-1]
     image_file = File(name)
     input_images.append(image_file)
