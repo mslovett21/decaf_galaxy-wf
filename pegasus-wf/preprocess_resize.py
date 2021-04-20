@@ -39,7 +39,7 @@ def main():
         bottom = (height + new_height)/2
 
         img = img.crop((left, top, right, bottom))
-        img_path, _ = img_path.split(".")
+        img_path = img_path.split(".")[0]
         img_path = img_path + "_proc.jpg"
         img.save(img_path)
 
