@@ -23,7 +23,7 @@ rc = ReplicaCatalog()
 
 
 # list of input file objects
-all_images_paths = glob.glob("10_percent_dataset/*")
+all_images_paths = glob.glob("10_percent_data/*")
 input_images = []
 
 for image_path in all_images_paths:
