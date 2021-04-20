@@ -22,7 +22,7 @@ import time
 
 
 IMG_SIZE    = 150
-DATASET_DIR = "./"
+
 
 
 def get_arguments():
@@ -31,11 +31,11 @@ def get_arguments():
     parser.add_argument('--class_str', type=str, default='class_2',help='class to augment')
     parser.add_argument('--num', type=int, default=10,help='number of images to create')  
     parser.add_argument(
-        "-i","--input_dir",default="dev_galaxy_dataset/",
+        "-i","--input_dir",default="",
         help="directory with data"
         )
     parser.add_argument(
-        "-o","--output_dir",default="dev_galaxy_dataset/",
+        "-o","--output_dir",default="",
         help="directory for outputs"
         ) 
     args = parser.parse_args()    

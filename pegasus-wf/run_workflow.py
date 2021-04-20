@@ -30,7 +30,7 @@ for image_path in all_images_paths:
     name = image_path.split("/")[-1]
     image_file = File(name)
     input_images.append(image_file)
-    rc.add_replica("local", image_file,  image_path)
+    rc.add_replica("local", image_file, os.path.join(os.getcwd(), image_path))
 
         
 rc.write()
@@ -42,7 +42,7 @@ tc = TransformationCatalog()
 
 
 # define container for the jobs
-crisis_container = Container(
+galaxy_container = Container(
             'crisis_container',
             Container.DOCKER,
             image = "docker://patkraw/galaxy-wf:latest",
@@ -55,10 +55,10 @@ preprocess_images = Transformation(
                         site = "local",
                         pfn = os.path.join(os.getcwd(), "bin/preprocess_resize.py"), 
                         is_stageable = True,
-                        container=crisis_container
+                        container=galaxy_container
                     )
 
-tc.add_containers(crisis_container)
+tc.add_containers(galaxy_container)
 tc.add_transformations(preprocess_images)
 tc.write()
 #-------------------------------------------------------------------------------------
@@ -69,7 +69,7 @@ tc.write()
 
 
 ## CREATE WORKFLOW
-wf = Workflow('Crisis_Computing_Workflow')
+wf = Workflow('Galaxy_Workflow')
 
 
 def split_preprocess_jobs(preprocess_images_job, input_images, postfix):

@@ -5,16 +5,14 @@ import sys
 import argparse
 from PIL import Image
 
-
-
 def parse_args(args):
     parser = argparse.ArgumentParser(description="Enter description here")
     parser.add_argument(
-        "-i","--input_dir",default="./",
+        "-i","--input_dir",default="",
         help="directory with data"
         )
     parser.add_argument(
-        "-o","--output_dir",default="./",
+        "-o","--output_dir",default="",
         help="directory for outputs"
         )
     return parser.parse_args(args)
