@@ -1,4 +1,4 @@
-# Required libraries
+#!/usr/bin/env python3
 
 import torch
 import argparse
@@ -22,14 +22,13 @@ import time
 from model_selection import EarlyStopping, VGG16Model
 from data_loader import GalaxyDataset
 
-from IPython import embed
+
 timestr = time.strftime("%Y%m%d-%H%M%S")
 ###################################################################################################
 # Paths:
 
-REL_PATH = "./"
-DATA_DIR = "./"
-#DATA_DIR = "final_galaxy_dataset/"
+REL_PATH = ""
+DATA_DIR = ""
 TRAIN_DATA_PATH  = REL_PATH + DATA_DIR 
 TEST_DATA_PATH   = REL_PATH + DATA_DIR
 VAL_DATA_PATH    = REL_PATH + DATA_DIR
@@ -204,9 +203,9 @@ def create_confusion_matrix(model, testloader):
     labels = labels.cpu().tolist()
     cm = confusion_matrix(labels, preds)    
     skplt.metrics.plot_confusion_matrix(labels, preds, normalize=True)   
-    plt.savefig(VIS_RESULTS_PATH + "/confusion_matrix_norm.png")
+    plt.savefig(VIS_RESULTS_PATH + "confusion_matrix_norm.png")
     skplt.metrics.plot_confusion_matrix(labels,preds, normalize=False)
-    plt.savefig(VIS_RESULTS_PATH + "/confusion_matrix_unnorm.png")
+    plt.savefig(VIS_RESULTS_PATH + "confusion_matrix_unnorm.png")
 
 def plot_cm(lab, pred):
     target_names = ["0","1","2","3", "4"]
@@ -240,7 +239,7 @@ def draw_training_curves(train_losses, test_losses, curve_name):
     plt.plot(train_losses, label='Training {}'.format(curve_name))
     plt.plot(test_losses, label='Testing {}'.format(curve_name))
     plt.legend(frameon=False)
-    plt.savefig(VIS_RESULTS_PATH + "/{}_vgg16.png".format(curve_name))
+    plt.savefig(VIS_RESULTS_PATH + "{}_vgg16.png".format(curve_name))
 
     
 

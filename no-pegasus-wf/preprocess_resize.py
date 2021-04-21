@@ -5,16 +5,16 @@ import sys
 import argparse
 from PIL import Image
 
-from IPython import embed
+
 
 def parse_args(args):
     parser = argparse.ArgumentParser(description="Enter description here")
     parser.add_argument(
-        "-i","--input_dir",default="./",
+        "-i","--input_dir",default="",
         help="directory with data"
         )
     parser.add_argument(
-        "-o","--output_dir",default="./",
+        "-o","--output_dir",default="",
         help="directory for outputs"
         )
     return parser.parse_args(args)
@@ -39,7 +39,7 @@ def main():
         bottom = (height + new_height)/2
 
         img = img.crop((left, top, right, bottom))
-        img_path, _ = img_path.split(".")
+        img_path = img_path.split(".")[0]
         img_path = img_path + "_proc.jpg"
         img.save(img_path)
 

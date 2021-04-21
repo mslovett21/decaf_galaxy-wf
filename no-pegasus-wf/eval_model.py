@@ -1,4 +1,4 @@
-# Required libraries
+#!/usr/bin/env python3
 import torch
 import argparse
 import torchvision
@@ -23,17 +23,17 @@ import time
 from model_selection import EarlyStopping, VGG16Model
 from data_loader import GalaxyDataset
 
-from IPython import embed
+
 timestr = time.strftime("%Y%m%d-%H%M%S")
 
 ###################################################################################################
 # PATHS
-REL_PATH = "./"
-DATA_DIR = "./"
+REL_PATH = ""
+DATA_DIR = ""
 TEST_DATA_PATH        = REL_PATH + DATA_DIR 
 VIS_RESULTS_PATH      = REL_PATH + ''
 FINAL_CHECKPOINT_PATH = "final_vgg16_model.pth"
-results_record = open(VIS_RESULTS_PATH+"/exp_results.csv", 'w+')
+results_record = open(VIS_RESULTS_PATH+"exp_results.csv", 'w+')
 
 try:
     os.makedirs(VIS_RESULTS_PATH)
@@ -126,7 +126,7 @@ def plot_cm(lab, pred):
     plt.ylabel('Actual')
     plt.xlabel('Predicted')
     plt.title("VGG-16")
-    plt.savefig(VIS_RESULTS_PATH + "/final_confusion_matrix_norm.png")
+    plt.savefig(VIS_RESULTS_PATH + "final_confusion_matrix_norm.png")
     plt.close()
 
 

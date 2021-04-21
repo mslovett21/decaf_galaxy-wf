@@ -8,10 +8,9 @@ import glob
 import sys
 import argparse
 from os import path
-from IPython import embed
+
 
 INPUT_DIR  = "full_galaxy_dataset/"
-
 OUTPUT_DIR = INPUT_DIR
 
 
