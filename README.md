@@ -172,3 +172,8 @@ python eval_model.py
 Outputs:
 final_confusion_matrix_norm.png
 exp_results.csv
+
+
+
+### Pegasus Workflow
+![img](pegasus-wf-graph.png)
