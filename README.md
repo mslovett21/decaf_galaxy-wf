@@ -1,62 +1,29 @@
 # Galaxy Classification Project
 
-## For Testing
-
-### Data
-
-For first experiments I created a smaller dataset with 2500 images you can find in dev_galaxy_dataset/
-The data is split into train, val and test sets vis prefixes (this is more natural for Pegasus)
-
-For HPO we use:
-train set with 1750 images
-val set with 250 images
-
-### Scripts
-
-You need these scripts for the experiments
-
-* model_selection.py - has definition of the pretrained model and early stopping modules
-* data_loader.py  - custom dataset loader is defined here, HERE WE CACHE WHOLE DATASET IN MEMORY
-* vgg16_hpo.py - experiment driver
 
 
+### Original Data
 
-```python
-python vgg16_hpo.py --trials 3 --epochs 10
-```
-
-The script creates a number of artifacts: checkpoints, plots and txt with best results.
-
-```python
-python train_model.py --epochs 10
-```
-
-
-```python
-python eval_model.py 
-```
-
-
-You do not need to create your own dataset. For dev dataset use dev_galaxy_dataset
-for experiments on full dataset use full_galaxy_dataset
+Original dataset is in 
 
 ```
-    
-Galaxy Classification
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --batch_size BATCH_SIZE
-                        batch size for training
-  --cuda CUDA           use gpu support
-  --seed SEED           select seed number for reproducibility
-  --root_path ROOT_PATH
-                        path to dataset
-  --save SAVE           path to checkpoint save directory
-  --epochs EPOCHS       number of training epochs
-  --trials TRIALS       number of HPO trials                      (default: 2)
-
+galaxy-zoo-the-galaxy-challenge\
 ```
+
+### Dev Data
+
+For Dev Dataset you can either use 
+```
+pegasus-wf\galaxy_data 
+```
+(to run the workflow from the beginning)
+OR
+```
+pegasus-wf\10_percent_data
+```
+to run steps like hpo, train and eval
+
+
 
 
 ### Decaf and Pegasus
