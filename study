@@ -1,0 +1,14 @@
+#!/bin/bash
+operation=$1
+study_name="Galaxy_Classification"
+#echo ${study_name}
+if [[ "$operation" == "create" ]]; then
+    echo "Optuna is creating study ${study_name} ..."
+    optuna create-study --study-name ${study_name} --storage "mysql://decaf_hpo_db_admin:3Iiidd_2s25j3w33jjdd@nerscdb04.nersc.gov/decaf_hpo_db" --direction "maximize"
+elif [[ "$operation" == "delete" ]]; then
+    echo "Optuna is deleting study ${study_name} ..."
+    optuna delete-study --study-name ${study_name} --storage "mysql://decaf_hpo_db_admin:3Iiidd_2s25j3w33jjdd@nerscdb04.nersc.gov/decaf_hpo_db"
+else
+    echo "Error: ./study.sh create/delete"
+    exit 1
+fi
