@@ -23,6 +23,10 @@ import time
 from model_selection import EarlyStopping, VGG16Model
 from data_loader import GalaxyDataset
 from mpi4py import MPI
+import resource
+from pynvml import *
+nvmlInit()
+handle = nvmlDeviceGetHandleByIndex(0)
 
 
 timestr = time.strftime("%Y%m%d-%H%M%S")
@@ -260,7 +264,17 @@ def get_data_loader(prefix):
 
 def objective(trial,direction = "minimize"):
     
-    print("Performing trial {}".format(trial.number))
+    print(f"Worker {WORKER_ID} is performing trial {trial.number}")
+    
+    s_usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    print(f'Worker {WORKER_ID}: Start objective usage: {s_usage}')
+
+    info = nvmlDeviceGetMemoryInfo(handle)
+    print(f"Worker {WORKER_ID}: Start total memory: {info.total}")
+    print(f"Worker {WORKER_ID}: Start free memory: {info.free}")
+    print(f"Worker {WORKER_ID}: Start used memory: {info.used}")
+
+    start = time.time()
     
     train_loader = get_data_loader("train")
     val_loader   = get_data_loader("val")
@@ -303,10 +317,18 @@ def objective(trial,direction = "minimize"):
         if early_stop.early_stop:
             break
     draw_training_curves(train_loss, val_loss, "loss", trial.number )
-    
-    
+
     total_loss/=EPOCHS
     
+    print(f'Worker {WORKER_ID} finished trial {trial.number} in {time.time() - start} seconds')
+
+    info = nvmlDeviceGetMemoryInfo(handle)
+    print(f"Worker {WORKER_ID}: End total memory: {info.total}")
+    print(f"Worker {WORKER_ID}: End free memory: {info.free}")
+    print(f"Worker {WORKER_ID}: End used memory: {info.used}")
+
+    e_usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    print(f'Worker {WORKER_ID}: End objective usage: {e_usage}')
     return total_loss
     
     
@@ -395,7 +417,7 @@ def main():
     exec_time = time.time() - start
 
 
-    print('Execution time in seconds: ' + str(exec_time))
+    print(f"Worker = {WORKER_ID}: Execution time in seconds: {exec_time}")
     return
 
 if __name__ == "__main__":
